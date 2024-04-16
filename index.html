@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Translation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fceabb;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 54px; /* Increased font size */
+            color: #0056b3;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            animation: shrink 1s ease forwards;
+        }
+
+        @keyframes shrink {
+            0% {
+                transform: scale(1.2); /* Initial larger size */
+            }
+            100% {
+                transform: scale(0.9);
+            }
+        }
+
+        .button-container {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .button-container.show {
+            display: flex;
+        }
+
+        .button-container button {
+            margin: 10px;
+            padding: 12px 24px;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            border-radius: 30px;
+            background-color: #ff6f61;
+            color: #fff;
+            transition: all 0.5s ease; /* Increased transition duration */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button-container button:hover {
+            background-color: #ff3d00;
+            transform: translateY(-2px);
+        }
+
+        .button-container button::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 28px;
+            color: #fff;
+            opacity: 0.7;
+        }
+
+        .button-container button#recordBtn::before {
+            content: '\f130'; /* Microphone icon */
+            font-family: 'Font Awesome 5 Free';
+        }
+
+        .button-container button#translateBtn::before {
+            content: '\f4ad'; /* Language icon */
+            font-family: 'Font Awesome 5 Free';
+        }
+
+        .button-container button#playBtn::before {
+            content: '\f04b'; /* Play icon */
+            font-family: 'Font Awesome 5 Free';
+        }
+
+        #status {
+            margin-top: 40px; /* Increased margin to avoid overlap */
+            margin-bottom: 20px; /* Added margin for better spacing */
+            font-size: 24px;
+            color: #0056b3;
+            text-align: center;
+            animation: statusFade 1s ease infinite alternate;
+        }
+
+        @keyframes statusFade {
+            0% {
+                opacity: 0.7;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Styling for audio player */
+        .audio-player {
+            display: none;
+            margin-top: 20px;
+            width: 300px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .audio-player audio {
+            width: 100%;
+            outline: none;
+        }
+
+        .audio-player button {
+            width: 50%;
+            padding: 10px;
+            font-size: 18px;
+            border: none;
+            background-color: #ff6f61;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.5s ease; /* Increased transition duration */
+        }
+
+        .audio-player button:hover {
+            background-color: #ff3d00;
+        }
+        /* Dropdown button */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px; /* Added margin for better spacing */
+        }
+
+        /* Dropdown content (hidden by default) */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        /* Links inside the dropdown */
+        .dropdown-content select {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            border: none;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: background-color 0.5s ease; /* Increased transition duration */
+        }
+
+        /* Change color of dropdown links on hover */
+        .dropdown-content select:hover {
+            background-color: #ddd;
+        }
+
+        /* Show the dropdown content when hovering over the dropdown button */
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Speech Translation</h1>
+
+    <div class="button-container" id="buttonContainer">
+        <button id="recordBtn"><i class="fas fa-microphone"></i> Record</button>
+        <!-- Inside the <div class="button-container" id="buttonContainer"> -->
+        <div class="dropdown">
+            <button class="dropbtn" id="translateBtn"><i class="fas fa-language"></i> Translate</button>
+            <div class="dropdown-content">
+                <select id="targetLanguage">
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                    <option value="Hindi">Hindi</option>
+                    <!-- Add more options for other languages as needed -->
+                </select>
+            </div>
+        </div>
+        <button id="playBtn"><i class="fas fa-play"></i> Play</button>
+    </div>
+
+    <div id="status">Status Message</div>
+
+    <div class="audio-player" id="audioPlayer">
+        <audio controls id="audioControl">
+            Your browser does not support the audio element.
+        </audio>
+        <button id="closePlayer">Close Player</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Animation for header and buttons
+            setTimeout(function() {
+                document.querySelector('h1').classList.add('shrink');
+                document.getElementById('buttonContainer').classList.add('show');
+            }, 500);
+
+            document.getElementById('recordBtn').addEventListener('click', function() {
+                // Set status to 'Recording...'
+                document.getElementById('status').innerText = 'Recording...';
+
+                // Send POST request to '/record_audio'
+                fetch('/record_audio', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Set status to response message
+
+                    })
+                    .catch(error => {
+                        // Log error to console
+                        console.error('Error:', error);
+                    });
+                var startTime = Date.now(); // Get the start time
+
+                // Update status every second until recording completes
+                var timerId = setInterval(function() {
+                    var elapsedTime = Math.floor((Date.now() - startTime) / 1000); // Calculate elapsed time in seconds
+                    // Set status to 'Recording... (elapsedTime seconds)'
+                    document.getElementById('status').innerText = 'Recording... (' + elapsedTime + ' seconds)';
+                }, 1000); // Update every 1 second (1000 milliseconds)
+
+                // Simulate recording for 5 seconds
+                setTimeout(function() {
+                    clearInterval(timerId); // Stop updating the status
+                    var elapsedTime = Math.floor((Date.now() - startTime) / 1000); // Calculate total elapsed time in seconds
+                    // Set status to 'Recording completed. Duration: elapsedTime seconds'
+                    document.getElementById('status').innerText = 'Recording completed. Duration: ' + elapsedTime + ' seconds';
+                }, 5000); // 5000 milliseconds = 5 seconds
+            });
+
+            document.getElementById('translateBtn').addEventListener('click', function() {
+                // Set status to 'Translating...'
+                document.getElementById('status').innerText = 'Translating...';
+
+                // Get the selected target language from the dropdown
+                var selectedLanguage = document.getElementById('targetLanguage').value;
+
+                // Send POST request to '/translate_text' with selected target language
+                fetch('/translate_text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ target_language: selectedLanguage }) // Send selected target language in the request body
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Set status to 'Translating to [destination_language]'
+                        document.getElementById('status').innerText = 'Translating to ' + data.target_language;
+
+                        // Display translated text after a short delay (for better user experience)
+                        setTimeout(function() {
+                            document.getElementById('status').innerText = data.translated_text;
+                        }, 2000); // 1000 milliseconds = 1 second (adjust as needed)
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+
+            document.getElementById('playBtn').addEventListener('click', function() {
+                // Set status to 'Creating file...'
+                document.getElementById('status').innerText = 'Creating file...';
+
+                fetch('/play_translation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json' // Set the content type to JSON
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data); // Check the response data in the console
+                        if (data.message) {
+                            // Set status to 'Playing...'
+                            document.getElementById('status').innerText = 'Playing...';
+                            // Update the status after a short delay to simulate the duration of the audio playback
+                            setTimeout(function() {
+                                document.getElementById('status').innerText = data.message;
+                            }, 3000); // Simulating playback duration (adjust as needed)
+                        } else if (data.error) {
+                            // Set status to the error message
+                            document.getElementById('status').innerText = data.error;
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        });
+    </script>
+</body>
+</html>
